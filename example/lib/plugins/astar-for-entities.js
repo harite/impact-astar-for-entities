@@ -2,11 +2,11 @@
  * astar-for-entities
  * https://github.com/hurik/impact-astar-for-entities
  *
- * v1.2.3
+ * v2.0.0 beta
  *
  * Andreas Giemza
  * andreas@giemza.net
- * http://www.hurik.de/
+ * http://www.andreasgiemza.de/
  *
  * This work is licensed under the Creative Commons Attribution 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by/3.0/.
  *
@@ -27,32 +27,24 @@ ig.module(
 	'plugins.astar-for-entities'
 )
 .requires(
-	'impact.entity'
+	'impact.entity',
+	'plugins.line-of-sight'
 ).
 defines(function() {
 
 ig.Entity.inject({
 	path: null,
 
-	headingDirection: 0,
-	// Heading direction values
-	// 1 4 6
-	// 2 0 7
-	// 3 5 8
-	
 	maxMovementActive: false,
 	maxMovement: 200,
 
 	// Direction change maluses
-	directionChangeMalus45degree: 0,
-	directionChangeMalus90degree: 0,
-
-	ready: function() {
-		this.directionChangeMalus45degree = ig.game.collisionMap.tilesize / 4;
-		this.directionChangeMalus90degree = ig.game.collisionMap.tilesize * 5 / 8;
-	},
-
-	getPath: function(destinationX, destinationY, diagonalMovement, entityTypesArray, ignoreEntityArray) {
+	directionChangeMalus45degree: 2,
+	// Should be 1/4 of the tilesize
+	directionChangeMalus90degree: 5,
+	// Should be 5/8 of the tilesize
+	
+	getPath: function(destinationX, destinationY, diagonalMovement, entityTypesArray, ignoreEntityArray, eraseUnimportantWaypoints) {
 		if(diagonalMovement == null) {
 			diagonalMovement = true;
 		}
@@ -63,6 +55,10 @@ ig.Entity.inject({
 
 		if(ignoreEntityArray == null) {
 			ignoreEntityArray = [];
+		}
+
+		if(eraseUnimportantWaypoints == null) {
+			eraseUnimportantWaypoints = false;
 		}
 
 		// Get the map information
@@ -165,6 +161,10 @@ ig.Entity.inject({
 						// added for limiting the movement path only be as long as the maxMovement... Chadrick
 						if(this.maxMovement > 0 && this._getPathLength() > this.maxMovement && this.maxMovementActive) {
 							this._createNewLimitedPath();
+						}
+
+						if(diagonalMovement && eraseUnimportantWaypoints) {
+							this._eraseUnimportantWaypoints(entityTypesArray, ignoreEntityArray);
 						}
 
 						return;
@@ -360,6 +360,24 @@ ig.Entity.inject({
 		return;
 	},
 
+	_eraseUnimportantWaypoints: function(entityTypesArray, ignoreEntityArray) {
+		this.path.unshift({
+			x: this.pos.x,
+			y: this.pos.y
+		});
+
+		for(var i = 0; i < this.path.length - 2; i++) {
+			var collision = ig.game.collisionMap.traceLos(this.path[i].x, this.path[i].y, this.path[i + 2].x - this.path[i].x, this.path[i + 2].y - this.path[i].y, this.size.x, this.size.y, entityTypesArray, ignoreEntityArray);
+
+			if(!collision) {
+				this.path.splice(i + 1, 1);
+				i--;
+			}
+		}
+
+		this.path.splice(0, 1);
+	},
+
 	_addEraseEntities: function(addErase, entityTypesArray, ignoreEntityArray) {
 		var ignoreThisEntity;
 
@@ -487,7 +505,7 @@ ig.Entity.inject({
 		};
 	},
 	// ----- Max movement by Chadrick ----- END -----
-
+	
 	followPath: function(speed, alignOnNearestTile) {
 		if(alignOnNearestTile == null) {
 			alignOnNearestTile = false;
@@ -532,78 +550,47 @@ ig.Entity.inject({
 
 		// Only do something if there is a path ...
 		if(this.path) {
-			// Did we reached a waypoint?
-			if(((this.pos.x >= this.path[0].x && this.last.x < this.path[0].x) || (this.pos.x <= this.path[0].x && this.last.x > this.path[0].x) || this.pos.x == this.path[0].x) && ((this.pos.y >= this.path[0].y && this.last.y < this.path[0].y) || (this.pos.y <= this.path[0].y && this.last.y > this.path[0].y) || this.pos.y == this.path[0].y)) {
-				// Was it the last waypoint?
-				if(this.path.length == 1) {
-					// Stopp the movement and set the position
-					this.vel.x = 0;
-					this.pos.x = this.path[0].x;
-					this.vel.y = 0;
-					this.pos.y = this.path[0].y;
-				}
+			if((this.pos.x >= this.path[0].x && this.last.x < this.path[0].x) || (this.pos.x <= this.path[0].x && this.last.x > this.path[0].x) || Math.abs(this.pos.x - this.path[0].x) < 0.5) {
+				this.vel.x = 0;
+				this.pos.x = this.path[0].x;
+			}
 
+			if((this.pos.y >= this.path[0].y && this.last.y < this.path[0].y) || (this.pos.y <= this.path[0].y && this.last.y > this.path[0].y) || Math.abs(this.pos.y - this.path[0].y) < 0.5) {
+				this.vel.y = 0;
+				this.pos.y = this.path[0].y;
+			}
+
+			// Did we reached a waypoint?
+			if(this.pos.x == this.path[0].x && this.pos.y == this.path[0].y) {
 				// Erase the last waypoint
 				this.path.splice(0, 1);
 
-				// if it was the last nothing to do ...
+				// If it was the last nothing to do ...
 				if(!this.path.length) {
 					this.path = null;
+
 					return;
 				}
 			}
 
-			// Calculate the speed if we move diagonal
-			if(this.pos.x != this.path[0].x && this.pos.y != this.path[0].y) {
-				speed = Math.sqrt(Math.pow(speed, 2) / 2);
-			}
+			var distanceX = this.path[0].x - this.pos.x;
+			var distanceY = this.path[0].y - this.pos.y;
 
-			// Move it in the right direction ...
-			if((this.pos.x >= this.path[0].x && this.last.x < this.path[0].x) || (this.pos.x <= this.path[0].x && this.last.x > this.path[0].x)) {
-				this.vel.x = 0;
-				this.pos.x = this.path[0].x;
-			} else if(this.pos.x < this.path[0].x) {
-				this.vel.x = speed;
-			} else if(this.pos.x > this.path[0].x) {
-				this.vel.x = -speed;
-			}
+			distanceLenght = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
-			if((this.pos.y >= this.path[0].y && this.last.y < this.path[0].y) || (this.pos.y <= this.path[0].y && this.last.y > this.path[0].y)) {
-				this.vel.y = 0;
-				this.pos.y = this.path[0].y;
-			} else if(this.pos.y < this.path[0].y) {
-				this.vel.y = speed;
-			} else if(this.pos.y > this.path[0].y) {
-				this.vel.y = -speed;
-			}
+			this.vel.x = distanceX / distanceLenght * speed;
+			this.vel.y = distanceY / distanceLenght * speed;
 
-			// Get the heading direction
-			if(this.vel.x < 0 && this.vel.y < 0) {
-				this.headingDirection = 1;
-			} else if(this.vel.x < 0 && this.vel.y > 0) {
-				this.headingDirection = 3;
-			} else if(this.vel.x > 0 && this.vel.y < 0) {
-				this.headingDirection = 6;
-			} else if(this.vel.x > 0 && this.vel.y > 0) {
-				this.headingDirection = 8;
-			} else if(this.vel.x < 0) {
-				this.headingDirection = 2;
-			} else if(this.vel.x > 0) {
-				this.headingDirection = 7;
-			} else if(this.vel.y < 0) {
-				this.headingDirection = 4;
-			} else if(this.vel.y > 0) {
-				this.headingDirection = 5;
-			}
+			// Update the animation angle
+			this.currentAnim.angle = Math.atan2(this.vel.y, this.vel.x) + Math.PI / 2;
 		} else {
 			// When there is no path, don't move ...
 			this.vel.x = 0;
 			this.vel.y = 0;
 
-			this.headingDirection = 0;
+			this.currentAnim.angle = 0;
 		}
 	},
-
 
 	drawPath: function(r, g, b, a, lineWidth) {
 		if(this.path) {

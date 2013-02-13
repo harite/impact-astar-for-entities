@@ -2,11 +2,11 @@
  * astar-for-entities-debug
  * https://github.com/hurik/impact-astar-for-entities
  *
- * v1.2.3
+ * v2.0.0 beta
  *
  * Andreas Giemza
  * andreas@giemza.net
- * http://www.hurik.de/
+ * http://www.andreasgiemza.de/
  *
  * This work is licensed under the Creative Commons Attribution 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by/3.0/.
  *

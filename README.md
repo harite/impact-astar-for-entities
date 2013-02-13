@@ -1,5 +1,18 @@
 # Impact A* for Entities
 
+## v2.0.0 beta
+### Improvments
+* getPath() now has the option `eraseUnimportantWaypoints`.
+* followPath() was improved.
+* `this.headingDirection` was removed. Now the `this.currentAnim.angle` is set.
+
+### Problems
+* `_eraseUnimportantWaypoints` very, very slow ...
+
+### Future
+* Get the minimum of waypoints ...
+
+
 ## Information
 This plugin for the [Impact Game Engine](http://impactjs.com/) adds pathfinding to the entities. It also has a basic path following function, a example for path drawing function and a debug panel for showing the path of all entities.
 

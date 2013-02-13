@@ -20,7 +20,7 @@ EntityEnemy = ig.Entity.extend({
 
 	init: function(x, y, settings) {
 		// You should use different animations, but i'm to lazy ...
-		this.addAnim('idle', 999999999999999999, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+		this.addAnim('idle', 999999999999999999, [0]);
 
 		this.pathTimer = new ig.Timer(2);
 
@@ -39,13 +39,6 @@ EntityEnemy = ig.Entity.extend({
 		// Walk the path
 		this.followPath(this.speed, true);
 
-		// Update the animation
-		this.currentAnim.gotoFrame(this.headingDirection);
-
-		// Heading direction values
-		// 1 4 6
-		// 2 0 7
-		// 3 5 8
 		this.parent();
 	},
 
