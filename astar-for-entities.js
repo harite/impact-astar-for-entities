@@ -2,7 +2,7 @@
  * astar-for-entities
  * https://github.com/hurik/impact-astar-for-entities
  *
- * v2.0.0 beta
+ * v2.0.0 beta 2
  *
  * Andreas Giemza
  * andreas@giemza.net
@@ -39,9 +39,9 @@ ig.Entity.inject({
 	maxMovement: 200,
 
 	// Direction change maluses
-	directionChangeMalus45degree: 2,
+	directionChangeMalus45degree: -0.1,
 	// Should be 1/4 of the tilesize
-	directionChangeMalus90degree: 5,
+	directionChangeMalus90degree: -0.1,
 	// Should be 5/8 of the tilesize
 	
 	getPath: function(destinationX, destinationY, diagonalMovement, entityTypesArray, ignoreEntityArray, eraseUnimportantWaypoints) {
@@ -104,7 +104,7 @@ ig.Entity.inject({
 		var nodes = {};
 
 		// Some variables we need later ...
-		var bestCost, bestNode, currentNode, newX, newY, tempG, newNode, lastDirection, direction;
+		var bestCost, bestNode, currentNode, newX, newY, tempG, newNode, direction;
 
 		// Push the start node on the open list
 		open.push(startNode);
@@ -136,19 +136,6 @@ ig.Entity.inject({
 					y: destinationNode.y * mapTilesize
 				}];
 
-				// direction
-				// 0 stand for X and Y change
-				// 1 stands for X change
-				// 2 stand for Y change
-				// Get the direction
-				if(currentNode.x != closed[currentNode.p].x && currentNode.y != closed[currentNode.p].y) {
-					lastDirection = 0;
-				} else if(currentNode.x != closed[currentNode.p].x && currentNode.y == closed[currentNode.p].y) {
-					lastDirection = 1;
-				} else if(currentNode.x == closed[currentNode.p].x && currentNode.y != closed[currentNode.p].y) {
-					lastDirection = 2;
-				}
-
 				// Go up the chain to recreate the path 
 				while(true) {
 					currentNode = closed[currentNode.p];
@@ -170,25 +157,11 @@ ig.Entity.inject({
 						return;
 					}
 
-					// Get the direction
-					if(currentNode.x != closed[currentNode.p].x && currentNode.y != closed[currentNode.p].y) {
-						direction = 0;
-					} else if(currentNode.x != closed[currentNode.p].x && currentNode.y == closed[currentNode.p].y) {
-						direction = 1;
-					} else if(currentNode.x == closed[currentNode.p].x && currentNode.y != closed[currentNode.p].y) {
-						direction = 2;
-					}
-
-					// Only save the path node, if the path changes the direction
-					if(direction != lastDirection) {
-						// Add the steps to the path
-						this.path.unshift({
-							x: currentNode.x * mapTilesize,
-							y: currentNode.y * mapTilesize
-						});
-					}
-
-					lastDirection = direction;
+					// Add the steps to the path
+					this.path.unshift({
+						x: currentNode.x * mapTilesize,
+						y: currentNode.y * mapTilesize
+					});
 				}
 			}
 

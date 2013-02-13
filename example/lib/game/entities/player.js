@@ -63,7 +63,7 @@ EntityPlayer = ig.Entity.extend({
 		}
 
 		// Walk the path
-		this.followPath(this.speed, true);
+		//this.followPath(this.speed, true);
 
 		this.parent();
 	},
